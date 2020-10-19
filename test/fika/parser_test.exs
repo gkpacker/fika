@@ -543,6 +543,27 @@ defmodule Fika.ParserTest do
       {:ok, result, _rest, _context, _line, _byte_offset} = TestParser.type_str(str)
       assert result == [{:type, {1, 0, 10}, "List(:foo)"}]
     end
+
+    test "union type with atoms" do
+      str = ":foo | :bar | :baz"
+
+      {:ok, result, _rest, _context, _line, _byte_offset} = TestParser.type_str(str)
+      assert result == [{:type, {1, 0, 18}, ":foo|:bar|:baz"}]
+    end
+
+    test "union type with other types" do
+      str = ":foo | List(Int)"
+
+      {:ok, result, _rest, _context, _line, _byte_offset} = TestParser.type_str(str)
+      assert result == [{:type, {1, 0, 16}, ":foo|List(Int)"}]
+    end
+
+    test "union type with nested union type" do
+      str = "{:foo, :bar} | :foo | List(:foo | :bar)"
+
+      {:ok, result, _rest, _context, _line, _byte_offset} = TestParser.type_str(str)
+      assert result == [{:type, {1, 0, 39}, "{:foo,:bar}|:foo|List(:foo|:bar)"}]
+    end
   end
 
   describe "function reference" do

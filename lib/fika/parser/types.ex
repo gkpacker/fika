@@ -5,7 +5,6 @@ defmodule Fika.Parser.Types do
 
   allow_space = parsec({Common, :allow_space})
   identifier_str = parsec({Common, :identifier_str})
-  atom = parsec({Common, :atom})
 
   type_args =
     optional(
@@ -29,8 +28,7 @@ defmodule Fika.Parser.Types do
   simple_type =
     ascii_string([?A..?Z], 1)
     |> ascii_string([?a..?z, ?A..?Z], min: 0)
-    |> reduce({Enum, :join, [""]})
-    |> Helper.to_ast(:simple_type)
+    |> reduce({Enum, :join, []})
 
   type_parens =
     string("(")
@@ -48,26 +46,22 @@ defmodule Fika.Parser.Types do
     |> concat(allow_space)
     |> parsec(:type)
     |> label("key value pair")
-    |> reduce({Enum, :join, []})
 
   type_key_values =
     type_key_value
     |> repeat(
       allow_space
-      |> ignore(string(","))
+      |> string(",")
       |> concat(allow_space)
       |> concat(type_key_value)
     )
-    |> reduce({Enum, :join, [","]})
 
   record_type =
     string("{")
     |> concat(type_key_values)
     |> string("}")
-    |> reduce({Enum, :join, []})
     |> label("record type")
 
-  # To parse functions with tuple return type
   type_tuple_element =
     parsec(:type)
     |> label("tuple element")
@@ -76,28 +70,39 @@ defmodule Fika.Parser.Types do
     type_tuple_element
     |> repeat(
       allow_space
-      |> ignore(string(","))
+      |> string(",")
       |> concat(allow_space)
       |> concat(type_tuple_element)
     )
-    |> reduce({Enum, :join, [","]})
 
   tuple_type =
     string("{")
     |> concat(type_tuple_elements)
     |> string("}")
-    |> reduce({Enum, :join, []})
     |> label("tuple type")
+
+  type_with_args =
+    simple_type
+    |> optional(type_parens)
+
+  atom =
+    string(":")
+    |> concat(identifier_str)
 
   type =
     choice([
       function_type,
-      simple_type
-      |> optional(type_parens),
+      type_with_args,
       atom,
       record_type,
       tuple_type
     ])
+    |> repeat(
+      allow_space
+      |> string("|")
+      |> concat(allow_space)
+      |> parsec(:type)
+    )
 
   parse_type =
     type

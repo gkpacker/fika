@@ -61,16 +61,7 @@ defmodule Fika.Parser.Helper do
   end
 
   def do_to_ast({types, line}, :type) do
-    type =
-      Enum.reduce(types, "", fn
-        {:atom, _l, value}, acc ->
-          acc <> ":#{value}"
-
-        type, acc ->
-          acc <> type
-      end)
-
-    {:type, line, type}
+    {:type, line, Enum.join(types)}
   end
 
   def do_to_ast({[identifier, type], _line}, :arg) do
@@ -139,12 +130,12 @@ defmodule Fika.Parser.Helper do
     end
   end
 
-  def do_to_ast({[{:identifier, line, value}], line}, :atom) when value in [true, false] do
-    {:boolean, line, value}
+  def do_to_ast({[value], line}, :atom) when value in ["true", "false"] do
+    {:boolean, line, String.to_atom(value)}
   end
 
-  def do_to_ast({[{:identifier, line, value}], line}, :atom) do
-    {:atom, line, value}
+  def do_to_ast({[value], line}, :atom) do
+    {:atom, line, String.to_atom(value)}
   end
 
   defp value_from_identifier({:identifier, _line, value}) do
